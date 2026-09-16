@@ -60,7 +60,9 @@ function letterColor(url) {
   const host = hostKeyOf(url) || '?';
   let h = 0;
   for (const c of host) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return `hsl(${h}, 55%, 45%)`;
+  // 哈希映射到暖色相区间（0°-60°：红→橙→黄）
+  h = (h % 61) * 0.95;
+  return `hsl(${h}, 55%, 46%)`;
 }
 
 function tabPath(url) {

@@ -15,8 +15,8 @@ export const DEFAULT_SETTINGS = {
   blacklist: '',
 };
 
-// chrome.tabGroups.update 支持的颜色
-export const GROUP_COLORS = ['blue', 'red', 'yellow', 'green', 'pink', 'orange', 'purple', 'grey'];
+// chrome.tabGroups.update 支持的颜色里挑暖色系，避免标签栏出现冷色调
+export const GROUP_COLORS = ['orange', 'yellow', 'red', 'pink', 'grey'];
 
 export async function loadSettings() {
   return chrome.storage.sync.get(DEFAULT_SETTINGS);
