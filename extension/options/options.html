@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>LetsTab 设置</title>
+  <style>
+    :root {
+      --bg: #f5f7fa; --card: #fff; --border: #e5e9f0;
+      --text: #1f2933; --muted: #6b7280;
+      --accent: #3d7bff; --accent-2: #6a4df0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font: 14px/1.6 system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+      display: flex; justify-content: center;
+      min-height: 100vh; padding: 40px 16px;
+    }
+    .wrap { width: 100%; max-width: 620px; }
+    header {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff; border-radius: 14px;
+      padding: 20px 24px; margin-bottom: 20px;
+    }
+    header h1 { font-size: 20px; }
+    header p { font-size: 13px; opacity: .85; margin-top: 4px; }
+    section {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 24px; margin-bottom: 16px;
+    }
+    h2 { font-size: 15px; margin-bottom: 14px; }
+    label { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; cursor: pointer; }
+    label:last-of-type { margin-bottom: 0; }
+    input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent); }
+    .hint { font-size: 12px; color: var(--muted); display: block; margin-top: 1px; }
+    textarea {
+      width: 100%; min-height: 110px; resize: vertical;
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; font: 13px/1.7 ui-monospace, Consolas, monospace;
+      color: var(--text);
+    }
+    textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    .bar { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+    button {
+      border: none; border-radius: 10px; padding: 10px 22px;
+      background: var(--accent); color: #fff;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    #status { font-size: 13px; color: #14804a; opacity: 0; transition: opacity .3s; }
+    #status.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>LetsTab 设置</h1>
+      <p>所有设置通过浏览器账号同步，仅保存在本地与你的同步数据中</p>
+    </header>
+
+    <section>
+      <h2>重复判定规则</h2>
+      <label>
+        <input type="checkbox" id="ckIgnoreHash">
+        <span>忽略 <code>#锚点</code> 差异
+          <span class="hint">example.com/page#top 和 example.com/page 视为同一个页面</span>
+        </span>
+      </label>
+      <label>
+        <input type="checkbox" id="ckIgnoreTracking">
+        <span>忽略追踪参数
+          <span class="hint">utm_*、gclid、fbclid 等推广参数不影响重复判定</span>
+        </span>
+      </label>
+      <label>
+        <input type="checkbox" id="ckIgnoreSlash">
+        <span>忽略末尾斜杠
+          <span class="hint">/page/ 和 /page 视为同一个页面</span>
+        </span>
+      </label>
+    </section>
+
+    <section>
+      <h2>保护规则</h2>
+      <label>
+        <input type="checkbox" id="ckProtectPinned">
+        <span>不整理已固定（📌 Pinned）的标签页
+          <span class="hint">固定的标签页不参与合并分组与关闭重复</span>
+        </span>
+      </label>
+    </section>
+
+    <section>
+      <h2>网站黑名单</h2>
+      <p class="hint" style="margin-bottom: 10px;">每行一个域名，黑名单中的网站不参与分组和去重。支持子域名，例如填 <code>github.com</code> 会同时匹配其所有子域名。</p>
+      <textarea id="taBlacklist" placeholder="例如：&#10;mail.example.com&#10;docs.google.com"></textarea>
+    </section>
+
+    <div class="bar">
+      <button id="btnSave">保存设置</button>
+      <span id="status"></span>
+    </div>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

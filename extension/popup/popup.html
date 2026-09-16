@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>LetsTab</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <img src="../icons/48.png" alt="">
+      </span>
+      <div class="brand-text">
+        <h1>LetsTab</h1>
+        <p id="stats">加载中…</p>
+      </div>
+    </div>
+    <button id="btnOptions" title="设置" aria-label="打开设置">⚙️</button>
+  </header>
+
+  <div class="actions">
+    <button id="btnGroup" class="btn primary">🧩 一键合并分组</button>
+    <button id="btnDedup" class="btn danger">🔥 关闭重复</button>
+  </div>
+
+  <p id="message" class="message" hidden></p>
+
+  <main id="list" aria-label="标签页列表"></main>
+
+  <footer>🔒 标签数据仅在本地处理，不会上传任何信息</footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

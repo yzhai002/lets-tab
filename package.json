@@ -1,0 +1,10 @@
+{
+  "name": "lets-tab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "一键整理浏览器标签页：相同网站自动分组、重复网页一键关闭。支持 Chrome 与 Edge。",
+  "scripts": {
+    "test": "node tests/run.mjs"
+  }
+}

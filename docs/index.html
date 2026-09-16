@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LetsTab — 一键整理浏览器标签页</title>
+  <meta name="description" content="LetsTab 是一款轻量浏览器扩展：相同网站自动合并分组，重复网页一键关闭。支持 Chrome 与 Edge。">
+  <link rel="icon" type="image/png" href="../extension/icons/32.png">
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #fff;
+      --border: #e5e9f0;
+      --text: #1f2933;
+      --muted: #6b7280;
+      --accent: #3d7bff;
+      --accent-2: #6a4df0;
+      --danger: #e11d48;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font: 16px/1.7 system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      padding: 72px 0 96px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero .wrap { position: relative; z-index: 1; }
+    .hero h1 { font-size: 44px; letter-spacing: -1px; line-height: 1.2; }
+    .hero .tagline { font-size: 20px; opacity: .92; margin: 14px 0 32px; }
+    .hero .btns { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 26px; border-radius: 12px;
+      font-size: 16px; font-weight: 600; text-decoration: none;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-light { background: #fff; color: var(--accent-2); box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+    .btn-ghost { border: 1.5px solid rgba(255,255,255,.7); color: #fff; }
+    .browsers { margin-top: 28px; font-size: 13px; opacity: .85; }
+
+    /* 演示卡 */
+    .demo {
+      max-width: 760px;
+      margin: -56px auto 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(31,41,51,.12);
+      padding: 20px;
+    }
+    .demo-title { font-size: 13px; color: var(--muted); margin-bottom: 14px; text-align: center; }
+
+    /* 模拟标签栏 */
+    .tabbar { display: flex; flex-wrap: wrap; gap: 10px; }
+    .group {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      flex: 1 1 auto;
+      min-width: 180px;
+    }
+    .group-head {
+      font-size: 12px; font-weight: 700;
+      padding: 5px 10px; color: #fff;
+    }
+    .g1 .group-head { background: #3d7bff; }
+    .g2 .group-head { background: #e11d48; }
+    .g3 .group-head { background: #f59e0b; }
+    .mock-tab {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; font-size: 12.5px;
+      border-top: 1px solid #f0f2f6;
+      background: #fff;
+    }
+    .mock-tab .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .mock-tab .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mock-tab.dup { color: var(--danger); }
+    .mock-tab.dup .badge {
+      margin-left: auto; font-size: 10px; color: #fff;
+      background: var(--danger); border-radius: 99px; padding: 1px 7px; flex-shrink: 0;
+    }
+    .arrow {
+      text-align: center; font-size: 24px; color: var(--accent);
+      margin: 14px 0;
+    }
+    .result-note { text-align: center; font-size: 13px; color: var(--muted); margin-top: 14px; }
+
+    /* 特性 */
+    .features { padding: 80px 0 40px; }
+    .features h2, .how h2, .faq h2 {
+      font-size: 30px; text-align: center; margin-bottom: 40px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .feature {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 26px;
+    }
+    .feature .emoji { font-size: 30px; }
+    .feature h3 { font-size: 17px; margin: 12px 0 6px; }
+    .feature p { font-size: 14px; color: var(--muted); }
+
+    /* 使用方式 */
+    .how { padding: 40px 0; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; counter-reset: step; }
+    .step {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; position: relative;
+    }
+    .step::before {
+      counter-increment: step; content: counter(step);
+      position: absolute; top: -14px; left: 24px;
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--accent); color: #fff;
+      display: grid; place-items: center; font-weight: 700; font-size: 14px;
+    }
+    .step h3 { font-size: 15px; margin-bottom: 6px; }
+    .step p { font-size: 13.5px; color: var(--muted); }
+    .step code {
+      background: #eef2f9; border-radius: 5px; padding: 1px 6px;
+      font-size: 12.5px; color: var(--accent-2);
+    }
+
+    /* FAQ */
+    .faq { padding: 40px 0 80px; }
+    .faq details {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 20px; margin-bottom: 12px;
+    }
+    .faq summary { font-weight: 600; cursor: pointer; }
+    .faq p { margin-top: 10px; font-size: 14px; color: var(--muted); }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0; text-align: center;
+      font-size: 13px; color: var(--muted);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 32px; }
+      .hero .tagline { font-size: 17px; }
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>LetsTab</h1>
+    <p class="tagline">一键合并同类项，把相同网站摆放在一起，关闭重复的网页。</p>
+    <div class="btns">
+      <a class="btn btn-light" href="#install">⬇️ 安装使用</a>
+      <a class="btn btn-ghost" href="https://github.com/yzhai002/lets-tab" target="_blank" rel="noopener">GitHub 仓库</a>
+    </div>
+    <p class="browsers">兼容 Chrome 与 Edge（同为 Chromium 内核，一套代码两端通用）</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="demo">
+    <p class="demo-title">整理前 → 整理后</p>
+    <div class="tabbar">
+      <div class="group g1">
+        <div class="group-head">github.com</div>
+        <div class="mock-tab"><span class="dot" style="background:#24292e"></span><span class="t">lets-tab: 概览</span></div>
+        <div class="mock-tab dup"><span class="dot" style="background:#24292e"></span><span class="t">Pull requests</span><span class="badge">重复</span></div>
+        <div class="mock-tab"><span class="dot" style="background:#24292e"></span><span class="t">Issues</span></div>
+      </div>
+      <div class="group g2">
+        <div class="group-head">bilibili.com</div>
+        <div class="mock-tab"><span class="dot" style="background:#fb7299"></span><span class="t">【教程】标签页管理</span></div>
+        <div class="mock-tab"><span class="dot" style="background:#fb7299"></span><span class="t">番剧 · 每周更新</span></div>
+      </div>
+      <div class="group g3">
+        <div class="group-head">zhihu.com</div>
+        <div class="mock-tab"><span class="dot" style="background:#0084ff"></span><span class="t">如何高效管理标签页？</span></div>
+      </div>
+    </div>
+    <div class="arrow">⬇️</div>
+    <div class="tabbar">
+      <div class="group g1">
+        <div class="group-head">github.com</div>
+        <div class="mock-tab"><span class="dot" style="background:#24292e"></span><span class="t">lets-tab: 概览</span></div>
+        <div class="mock-tab"><span class="dot" style="background:#24292e"></span><span class="t">Issues</span></div>
+      </div>
+      <div class="group g2">
+        <div class="group-head">bilibili.com</div>
+        <div class="mock-tab"><span class="dot" style="background:#fb7299"></span><span class="t">【教程】标签页管理</span></div>
+        <div class="mock-tab"><span class="dot" style="background:#fb7299"></span><span class="t">番剧 · 每周更新</span></div>
+      </div>
+      <div class="group g3">
+        <div class="group-head">zhihu.com</div>
+        <div class="mock-tab"><span class="dot" style="background:#0084ff"></span><span class="t">如何高效管理标签页？</span></div>
+      </div>
+    </div>
+    <p class="result-note">重复的 Pull requests 标签被自动关闭，其余按网站归入彩色分组</p>
+  </div>
+
+  <section class="features">
+    <h2>核心功能</h2>
+    <div class="grid">
+      <div class="feature">
+        <div class="emoji">🧩</div>
+        <h3>一键合并同类项</h3>
+        <p>点击插件图标，相同网站的标签页自动收进同名彩色分组，标签栏瞬间清爽。</p>
+      </div>
+      <div class="feature">
+        <div class="emoji">🔥</div>
+        <h3>关闭重复网页</h3>
+        <p>智能识别相同 URL（自动忽略 #锚点、utm_* 等追踪参数），只保留最早打开的那一个。</p>
+      </div>
+      <div class="feature">
+        <div class="emoji">📌</div>
+        <h3>保护你的固定标签</h3>
+        <p>固定的（Pinned）标签页和黑名单网站不参与整理，重要页面永被误伤。</p>
+      </div>
+      <div class="feature">
+        <div class="emoji">🔒</div>
+        <h3>100% 本地处理</h3>
+        <p>所有标签数据只在你的浏览器里计算，零网络请求，不上传任何信息。</p>
+      </div>
+      <div class="feature">
+        <div class="emoji">🪶</div>
+        <h3>轻量无依赖</h3>
+        <p>Manifest V3 原生实现，仅申请 tabs 与 storage 两项权限，安装即用。</p>
+      </div>
+      <div class="feature">
+        <div class="emoji">🌐</div>
+        <h3>双浏览器支持</h3>
+        <p>同一套代码直接跑在 Chrome 和 Edge 上，数据经浏览器账号同步。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="how" id="install">
+    <h2>安装使用</h2>
+    <div class="steps">
+      <div class="step">
+        <h3>下载源码</h3>
+        <p>从 <a href="https://github.com/yzhai002/lets-tab" target="_blank" rel="noopener">GitHub 仓库</a> 下载并解压到本地任意文件夹。</p>
+      </div>
+      <div class="step">
+        <h3>打开扩展管理页</h3>
+        <p>Chrome 地址栏输入 <code>chrome://extensions</code>；Edge 输入 <code>edge://extensions</code>。</p>
+      </div>
+      <div class="step">
+        <h3>开启开发者模式</h3>
+        <p>打开页面右上角的「开发者模式」开关。</p>
+      </div>
+      <div class="step">
+        <h3>加载扩展</h3>
+        <p>点「加载已解压的扩展程序」，选择仓库里的 <code>extension/</code> 文件夹，完成。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq">
+    <h2>常见问题</h2>
+    <details>
+      <summary>两个网址看起来一样，为什么没被判为重复？</summary>
+      <p>可以在设置页里调整判定规则：是否忽略 #锚点、追踪参数（utm_* 等）、末尾斜杠。例如 /page/ 与 /page 默认视为相同。</p>
+    </details>
+    <details>
+      <summary>会不会把我不想关的页面关掉？</summary>
+      <p>不会。固定（Pinned）的标签页永远保留；你也可以在设置里把常用网站加入黑名单（如正在编辑的在线文档），黑名单网站完全不参与整理。</p>
+    </details>
+    <details>
+      <summary>我的标签数据安全吗？</summary>
+      <p>安全。LetsTab 没有任何服务器，不发起网络请求，全部逻辑在浏览器本地完成，设置数据仅通过浏览器自带的同步机制保存。</p>
+    </details>
+  </section>
+</div>
+
+<footer>
+  LetsTab · <a href="https://github.com/yzhai002/lets-tab" target="_blank" rel="noopener">GitHub</a> · MIT License
+</footer>
+
+</body>
+</html>

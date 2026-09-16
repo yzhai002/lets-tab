@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "LetsTab",
+  "version": "0.1.0",
+  "description": "一键整理浏览器标签页：相同网站自动分组、重复网页一键关闭。支持 Chrome 与 Edge。",
+  "permissions": ["tabs", "storage"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "LetsTab — 标签页整理"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options/options.html",
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}
