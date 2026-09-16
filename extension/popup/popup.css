@@ -1,13 +1,13 @@
 :root {
-  --bg: #f5f7fa;
-  --card: #ffffff;
-  --border: #e5e9f0;
-  --text: #1f2933;
-  --muted: #6b7280;
-  --accent: #3d7bff;
-  --accent-2: #6a4df0;
-  --danger: #e11d48;
-  --danger-bg: #ffe9ee;
+  --bg: #f8f2ea;
+  --card: #fffdf8;
+  --border: #ecdfcf;
+  --text: #3d2e23;
+  --muted: #937a63;
+  --accent: #d97b3f;
+  --accent-2: #c2543a;
+  --danger: #c94f38;
+  --danger-bg: #f9e7e0;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,7 +84,7 @@ header {
   border-radius: 8px;
   font-size: 12px;
 }
-.message.ok { background: #e8f7ee; color: #14804a; }
+.message.ok { background: #ecf3e2; color: #5a7a3a; }
 .message.err { background: var(--danger-bg); color: var(--danger); }
 
 main {
@@ -106,7 +106,7 @@ main {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  background: #fafbfd;
+  background: #faf3e8;
   border-bottom: 1px solid var(--border);
 }
 
@@ -160,10 +160,10 @@ main {
   gap: 8px;
   padding: 7px 10px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f2f6;
+  border-bottom: 1px solid #f3ebe0;
 }
 .tab:last-child { border-bottom: none; }
-.tab:hover { background: #f4f7ff; }
+.tab:hover { background: #fdf0e2; }
 
 .tab.dup { box-shadow: inset 3px 0 0 var(--danger); }
 
