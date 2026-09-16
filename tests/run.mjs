@@ -2,8 +2,10 @@
 import { strict as assert } from 'node:assert';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fs from 'node:fs';
 
-const libPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../extension/src/lib.js');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const libPath = path.join(root, 'extension/src/lib.js');
 const lib = await import(libPath);
 
 const S = { ...lib.DEFAULT_SETTINGS };
@@ -118,6 +120,16 @@ test('findDuplicates 非完整 URL 参数逐一比较', () => {
     tab(2, 'https://e.com/p?a=2'),
   ], s);
   assert.equal(toClose.length, 0);
+});
+
+test('manifest 声明了代码用到的全部权限与图标', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'extension/manifest.json'), 'utf8'));
+  assert.ok(manifest.permissions.includes('tabs'), '缺少 tabs 权限');
+  assert.ok(manifest.permissions.includes('tabGroups'), '缺少 tabGroups 权限（popup 分组功能必需）');
+  assert.ok(manifest.permissions.includes('storage'), '缺少 storage 权限');
+  for (const size of [16, 32, 48, 128]) {
+    assert.ok(fs.existsSync(path.join(root, `extension/icons/${size}.png`)), `缺少图标 ${size}.png`);
+  }
 });
 
 console.log(`\n${passed} 个测试全部通过 ✅`);
