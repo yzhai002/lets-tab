@@ -96,6 +96,15 @@
       <textarea id="taBlacklist" placeholder="例如：&#10;mail.example.com&#10;docs.google.com"></textarea>
     </section>
 
+    <section>
+      <h2>自定义分组规则</h2>
+      <p class="hint" style="margin-bottom: 10px;">
+        每行一条：<code>域名[|域名2…] =&gt; 组名</code>。同一规则里的域名会合并成一组；
+        组名可省略（只合并不改名）。组名会同时用作浏览器标签分组的标题。
+      </p>
+      <textarea id="taGroupRules" placeholder="例如：&#10;bilibili.com => B站&#10;github.com|gist.github.com => 开发&#10;mail.google.com|mail.163.com"></textarea>
+    </section>
+
     <div class="bar">
       <button id="btnSave">保存设置</button>
       <span id="status"></span>

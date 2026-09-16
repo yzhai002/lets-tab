@@ -2,20 +2,27 @@ import {
   loadSettings, isProtectedTab, groupTabsByDomain, findDuplicates,
   hostKeyOf, GROUP_COLORS,
 } from '../src/lib.js';
+import { listSnapshots, saveSnapshot, deleteSnapshot, restoreSnapshot } from '../src/snapshots.js';
 
 const els = {
   stats: document.getElementById('stats'),
   btnOptions: document.getElementById('btnOptions'),
   btnGroup: document.getElementById('btnGroup'),
   btnDedup: document.getElementById('btnDedup'),
+  btnSnapshot: document.getElementById('btnSnapshot'),
   message: document.getElementById('message'),
   list: document.getElementById('list'),
+  search: document.getElementById('search'),
+  snapshotList: document.getElementById('snapshotList'),
 };
 
 let settings = null;
 let currentTabs = [];
 let dupIds = new Set();
 let dupCount = 0;
+// 分组折叠状态（域名 → 是否折叠），只存在 popup 生命周期内
+const collapsed = new Set();
+const COLLAPSE_THRESHOLD = 5; // 超过这么多个标签的分组默认折叠
 
 function showMessage(text, ok = true) {
   els.message.textContent = text;
@@ -34,6 +41,7 @@ async function refresh() {
   dupIds = new Set(toClose.map((t) => t.id));
   dupCount = toClose.length;
   render();
+  renderSnapshots();
 }
 
 function faviconEl(tab, cls = 'fav') {
@@ -117,17 +125,25 @@ function renderTabRow(tab) {
   return row;
 }
 
-function renderSiteGroup(group) {
+function renderSiteGroup(group, searchActive) {
   const section = document.createElement('section');
   section.className = 'site';
 
+  const isCollapsed = collapsed.has(group.domain) ||
+    (!searchActive && group.tabs.length >= COLLAPSE_THRESHOLD && !collapsed.has('!' + group.domain));
+
   const head = document.createElement('div');
   head.className = 'site-head';
+
+  const chevron = document.createElement('span');
+  chevron.className = 'chevron';
+  chevron.textContent = '▼';
+  head.append(chevron);
   head.append(faviconEl(group.tabs[0]));
 
   const name = document.createElement('span');
   name.className = 'site-name';
-  name.textContent = group.domain;
+  name.textContent = group.displayName || group.domain;
   head.append(name);
 
   if (group.tabs.length >= 2) {
@@ -135,7 +151,10 @@ function renderSiteGroup(group) {
     btn.className = 'mini';
     btn.textContent = '分组';
     btn.title = '把这些标签页合并成一个分组';
-    btn.addEventListener('click', () => groupDomains([group.domain]));
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      groupDomains([group.domain]);
+    });
     head.append(btn);
   }
 
@@ -144,32 +163,64 @@ function renderSiteGroup(group) {
   count.textContent = group.tabs.length + ' 个';
   head.append(count);
 
+  head.addEventListener('click', () => {
+    // 折叠状态记忆：显式展开/折叠优先于按数量的默认折叠
+    if (collapsed.has(group.domain)) collapsed.delete(group.domain);
+    else if (collapsed.has('!' + group.domain)) { collapsed.delete('!' + group.domain); collapsed.add(group.domain); }
+    else if (isCollapsed) collapsed.delete('!' + group.domain);
+    else collapsed.add(group.domain);
+    render();
+  });
+
   section.append(head);
-  for (const tab of group.tabs) section.append(renderTabRow(tab));
+
+  const rows = document.createElement('div');
+  rows.className = 'tab-rows';
+  if (!isCollapsed) {
+    for (const tab of group.tabs) rows.append(renderTabRow(tab));
+  }
+  section.append(rows);
+  if (isCollapsed) section.classList.add('collapsed');
   return section;
 }
 
 function render() {
-  const groups = groupTabsByDomain(currentTabs, settings);
-  const multiGroups = groups.filter((g) => g.tabs.length >= 2);
-  const others = currentTabs.filter((t) => isProtectedTab(t, settings));
+  const query = els.search.value.trim().toLowerCase();
+  const searchActive = !!query;
 
-  els.stats.textContent =
-    `${currentTabs.length} 个标签 · ${groups.length} 个网站 · ${dupCount} 个重复`;
-  els.btnGroup.disabled = multiGroups.length === 0;
+  let groups = groupTabsByDomain(currentTabs, settings);
+  if (searchActive) {
+    groups = groups
+      .map((g) => ({
+        ...g,
+        tabs: g.tabs.filter((t) =>
+          (t.title || '').toLowerCase().includes(query) ||
+          (t.url || '').toLowerCase().includes(query) ||
+          g.domain.includes(query)),
+      }))
+      .filter((g) => g.tabs.length);
+  }
+  const others = currentTabs.filter((t) => isProtectedTab(t, settings) &&
+    (!searchActive || (t.title || '').toLowerCase().includes(query) || (t.url || '').toLowerCase().includes(query)));
+
+  const visibleCount = groups.reduce((n, g) => n + g.tabs.length, 0) + others.length;
+  els.stats.textContent = searchActive
+    ? `找到 ${visibleCount} 个标签`
+    : `${currentTabs.length} 个标签 · ${groups.length} 个网站 · ${dupCount} 个重复`;
+  els.btnGroup.disabled = !searchActive && groups.filter((g) => g.tabs.length >= 2).length === 0;
   els.btnDedup.disabled = dupCount === 0;
   els.btnDedup.textContent = dupCount ? `🔥 关闭 ${dupCount} 个重复` : '🔥 关闭重复';
 
   els.list.textContent = '';
-  if (!currentTabs.length) {
+  if (!visibleCount) {
     const empty = document.createElement('p');
     empty.className = 'empty';
-    empty.textContent = '当前窗口没有标签页';
+    empty.textContent = searchActive ? '没有匹配的标签页' : '当前窗口没有标签页';
     els.list.append(empty);
     return;
   }
   for (const group of groups) {
-    els.list.append(renderSiteGroup(group));
+    els.list.append(renderSiteGroup(group, searchActive));
   }
   if (others.length) {
     const title = document.createElement('p');
@@ -180,6 +231,52 @@ function render() {
     section.className = 'site';
     for (const tab of others) section.append(renderTabRow(tab));
     els.list.append(section);
+  }
+}
+
+async function renderSnapshots() {
+  const list = await listSnapshots();
+  els.snapshotList.textContent = '';
+  if (!list.length) {
+    const empty = document.createElement('p');
+    empty.className = 'snapshot-empty';
+    empty.textContent = '还没有快照，点上方 📸 保存当前标签页';
+    els.snapshotList.append(empty);
+    return;
+  }
+  for (const snap of list.slice(0, 10)) {
+    const item = document.createElement('div');
+    item.className = 'snapshot-item';
+    const title = document.createElement('span');
+    title.className = 'snap-title';
+    title.textContent = snap.title;
+    title.title = `${snap.count} 个标签页`;
+    item.append(title);
+    const count = document.createElement('span');
+    count.className = 'snap-count';
+    count.textContent = snap.count + ' 页';
+    item.append(count);
+    const restore = document.createElement('button');
+    restore.className = 'mini';
+    restore.textContent = '恢复';
+    restore.addEventListener('click', async () => {
+      try {
+        const n = await restoreSnapshot(snap.id);
+        showMessage(`已恢复 ${n} 个标签页`);
+      } catch (err) {
+        showMessage('恢复失败：' + err.message, false);
+      }
+    });
+    item.append(restore);
+    const del = document.createElement('button');
+    del.className = 'mini';
+    del.textContent = '删';
+    del.addEventListener('click', async () => {
+      await deleteSnapshot(snap.id);
+      renderSnapshots();
+    });
+    item.append(del);
+    els.snapshotList.append(item);
   }
 }
 
@@ -195,7 +292,7 @@ async function groupDomains(domainList) {
       const g = groups[i];
       const groupId = await chrome.tabs.group({ tabIds: g.tabs.map((t) => t.id) });
       await chrome.tabGroups.update(groupId, {
-        title: g.domain,
+        title: g.displayName || g.domain,
         color: GROUP_COLORS[i % GROUP_COLORS.length],
       });
     }
@@ -227,6 +324,12 @@ els.btnGroup.addEventListener('click', () => {
   groupDomains(groups.map((g) => g.domain));
 });
 els.btnDedup.addEventListener('click', closeDuplicates);
+els.btnSnapshot.addEventListener('click', async () => {
+  const snap = await saveSnapshot();
+  showMessage(`已保存快照：${snap.count} 个标签页`);
+  renderSnapshots();
+});
 els.btnOptions.addEventListener('click', () => chrome.runtime.openOptionsPage());
+els.search.addEventListener('input', render);
 
 refresh();

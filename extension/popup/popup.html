@@ -19,14 +19,24 @@
     <button id="btnOptions" title="设置" aria-label="打开设置">⚙️</button>
   </header>
 
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="搜索标签页或网站…" autocomplete="off">
+  </div>
+
   <div class="actions">
     <button id="btnGroup" class="btn primary">🧩 一键合并分组</button>
     <button id="btnDedup" class="btn danger">🔥 关闭重复</button>
+    <button id="btnSnapshot" class="btn ghost" title="把当前所有标签页保存为快照">📸 快照</button>
   </div>
 
   <p id="message" class="message" hidden></p>
 
   <main id="list" aria-label="标签页列表"></main>
+
+  <details id="snapshots" class="snapshots">
+    <summary>📂 历史快照</summary>
+    <div id="snapshotList" class="snapshot-list"></div>
+  </details>
 
   <footer>🔒 标签数据仅在本地处理，不会上传任何信息</footer>
 

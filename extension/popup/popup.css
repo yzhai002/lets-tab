@@ -59,8 +59,20 @@ header {
 .actions {
   display: flex;
   gap: 8px;
-  padding: 12px 14px 8px;
+  padding: 10px 14px 8px;
 }
+
+.toolbar { padding: 12px 14px 0; }
+#search {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 13px;
+}
+#search:focus { outline: 2px solid var(--accent); border-color: transparent; }
 
 .btn {
   flex: 1;
@@ -77,6 +89,7 @@ header {
 
 .btn.primary { background: var(--accent); color: #fff; }
 .btn.danger { background: var(--danger-bg); color: var(--danger); }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); flex: 0 0 auto; }
 
 .message {
   margin: 2px 14px 8px;
@@ -108,7 +121,18 @@ main {
   padding: 8px 10px;
   background: #faf3e8;
   border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
 }
+.site-head .chevron {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform .15s;
+}
+.site.collapsed .chevron { transform: rotate(-90deg); }
+.site.collapsed .tab-rows { display: none; }
+.tab-rows { }
 
 .fav {
   width: 18px; height: 18px;
@@ -218,6 +242,38 @@ main {
   text-align: center;
   color: var(--muted);
 }
+
+.snapshots {
+  margin: 0 14px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.snapshots summary {
+  cursor: pointer;
+  padding: 6px 2px;
+  color: var(--muted);
+  user-select: none;
+}
+.snapshot-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-top: 1px solid #f3ebe0;
+}
+.snapshot-item .snap-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.snapshot-item .snap-count { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+.snapshot-item .mini { flex-shrink: 0; }
+.snapshot-empty { padding: 8px 2px; color: var(--muted); }
 
 footer {
   padding: 8px 14px;
