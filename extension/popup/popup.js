@@ -39,7 +39,9 @@ async function refresh() {
   const allTabs = await chrome.tabs.query({});
   const { toClose } = findDuplicates(allTabs, settings);
   dupIds = new Set(toClose.map((t) => t.id));
-  dupCount = toClose.length;
+  // 按钮计数只统计当前窗口里可见的重复（全局去重由按钮动作跨窗口执行）
+  const currentIds = new Set(currentTabs.map((t) => t.id));
+  dupCount = toClose.filter((t) => currentIds.has(t.id)).length;
   render();
   renderSnapshots();
 }
@@ -206,10 +208,13 @@ function render() {
   const visibleCount = groups.reduce((n, g) => n + g.tabs.length, 0) + others.length;
   els.stats.textContent = searchActive
     ? `找到 ${visibleCount} 个标签`
-    : `${currentTabs.length} 个标签 · ${groups.length} 个网站 · ${dupCount} 个重复`;
+    : `本窗口 ${currentTabs.length} 个标签 · ${groups.length} 个网站 · ${dupCount} 个重复`;
   els.btnGroup.disabled = !searchActive && groups.filter((g) => g.tabs.length >= 2).length === 0;
-  els.btnDedup.disabled = dupCount === 0;
-  els.btnDedup.textContent = dupCount ? `🔥 关闭 ${dupCount} 个重复` : '🔥 关闭重复';
+  const globalDupCount = dupIds.size;
+  els.btnDedup.disabled = globalDupCount === 0;
+  els.btnDedup.textContent = globalDupCount
+    ? `🔥 关闭 ${globalDupCount} 个重复${dupCount < globalDupCount ? '（含其它窗口）' : ''}`
+    : '🔥 关闭重复';
 
   els.list.textContent = '';
   if (!visibleCount) {
