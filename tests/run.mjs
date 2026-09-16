@@ -122,11 +122,46 @@ test('findDuplicates 非完整 URL 参数逐一比较', () => {
   assert.equal(toClose.length, 0);
 });
 
+test('parseGroupRules 解析别名、多域名与无名规则', () => {
+  const rules = lib.parseGroupRules('bilibili.com => B站\n  github.com|gist.github.com => 开发 \nmail.google.com\n\n');
+  assert.equal(rules.length, 3);
+  assert.deepEqual(rules[0], { domains: ['bilibili.com'], name: 'B站' });
+  assert.deepEqual(rules[1], { domains: ['github.com', 'gist.github.com'], name: '开发' });
+  assert.deepEqual(rules[2], { domains: ['mail.google.com'], name: '' });
+});
+
+test('ruleKeyFor / ruleNameFor 匹配域名与子域名', () => {
+  const rules = lib.parseGroupRules('github.com|gist.github.com => 开发\nmail.google.com');
+  assert.equal(lib.ruleKeyFor('github.com', rules), 'github.com');
+  assert.equal(lib.ruleKeyFor('gist.github.com', rules), 'github.com');
+  assert.equal(lib.ruleKeyFor('www.github.com', rules), 'github.com');
+  assert.equal(lib.ruleKeyFor('example.com', rules), null);
+  assert.equal(lib.ruleNameFor('gist.github.com', rules), '开发');
+  assert.equal(lib.ruleNameFor('mail.google.com', rules), '');
+  assert.equal(lib.ruleNameFor('example.com', rules), null);
+});
+
+test('groupTabsByDomain 按规则归并不同域名并改组名', () => {
+  const s = { ...lib.DEFAULT_SETTINGS, groupRules: 'github.com|gist.github.com => 开发' };
+  const groups = lib.groupTabsByDomain([
+    tab(1, 'https://github.com/a'),
+    tab(2, 'https://gist.github.com/b'),
+    tab(3, 'https://example.com/c'),
+  ], s);
+  const dev = groups.find((g) => g.domain === 'github.com');
+  assert.ok(dev, '应有归并后的 github 组');
+  assert.equal(dev.tabs.length, 2);
+  assert.equal(dev.displayName, '开发');
+  assert.equal(groups.find((g) => g.domain === 'example.com').tabs.length, 1);
+});
+
 test('manifest 声明了代码用到的全部权限与图标', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'extension/manifest.json'), 'utf8'));
   assert.ok(manifest.permissions.includes('tabs'), '缺少 tabs 权限');
   assert.ok(manifest.permissions.includes('tabGroups'), '缺少 tabGroups 权限（popup 分组功能必需）');
   assert.ok(manifest.permissions.includes('storage'), '缺少 storage 权限');
+  assert.ok(manifest.commands && manifest.commands['group-tabs'], '缺少 group-tabs 快捷键命令');
+  assert.ok(manifest.commands && manifest.commands['close-duplicates'], '缺少 close-duplicates 快捷键命令');
   for (const size of [16, 32, 48, 128]) {
     assert.ok(fs.existsSync(path.join(root, `extension/icons/${size}.png`)), `缺少图标 ${size}.png`);
   }

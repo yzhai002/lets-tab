@@ -13,7 +13,58 @@ export const DEFAULT_SETTINGS = {
   ignoreTrailingSlash: true,
   protectPinned: true,
   blacklist: '',
+  // 自定义分组规则，每行一条：域名[|域名2...] => 组名
+  // 例：bilibili.com => B站
+  //     github.com|gist.github.com => 开发
+  groupRules: '',
 };
+
+// 解析自定义分组规则，返回 [{ domains: [array], name: string }]
+export function parseGroupRules(text) {
+  return String(text || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.split('=>');
+      const domains = parts[0].split('|')
+        .map((d) => d.trim().toLowerCase().replace(/^www\./, ''))
+        .filter(Boolean);
+      const name = (parts[1] || '').trim();
+      return domains.length ? { domains, name } : null;
+    })
+    .filter(Boolean);
+}
+
+function normalizeHost(host) {
+  return String(host || '').toLowerCase().replace(/^www\./, '');
+}
+
+function hostMatchesDomain(host, domain) {
+  return host === domain || host.endsWith('.' + domain);
+}
+
+// 命中规则时返回组名（规则无名则返回空串表示只归并不改名）
+export function ruleNameFor(host, rules) {
+  const h = normalizeHost(host);
+  for (let i = 0; i < rules.length; i++) {
+    for (let j = 0; j < rules[i].domains.length; j++) {
+      if (hostMatchesDomain(h, rules[i].domains[j])) return rules[i].name;
+    }
+  }
+  return null;
+}
+
+// 归并键：命中规则的域名们共用规则首个域名作为聚合键，未命中返回 null
+export function ruleKeyFor(host, rules) {
+  const h = normalizeHost(host);
+  for (let i = 0; i < rules.length; i++) {
+    for (let j = 0; j < rules[i].domains.length; j++) {
+      if (hostMatchesDomain(h, rules[i].domains[j])) return rules[i].domains[0];
+    }
+  }
+  return null;
+}
 
 // chrome.tabGroups.update 支持的颜色里挑暖色系，避免标签栏出现冷色调
 export const GROUP_COLORS = ['orange', 'yellow', 'red', 'pink', 'grey'];
@@ -83,18 +134,25 @@ export function normalizeUrl(rawUrl, settings) {
   return u.href;
 }
 
-// 按域名聚合（去掉 www. 前缀），只统计可处理的标签
+// 按域名聚合（去掉 www. 前缀），只统计可处理的标签。
+// settings.groupRules 的规则会把不同域名归并到同一组并改名。
 export function groupTabsByDomain(tabs, settings) {
+  const rules = parseGroupRules(settings.groupRules);
   const map = new Map();
   for (const tab of tabs) {
     if (isProtectedTab(tab, settings)) continue;
     if (!isHttpUrl(tab.url)) continue;
-    const key = hostKeyOf(tab.url);
-    if (!key) continue;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(tab);
+    const host = hostKeyOf(tab.url);
+    if (!host) continue;
+    // 规则优先：命中规则的标签归并到规则键下，组名用规则名
+    const ruleKey = rules.length ? ruleKeyFor(host, rules) : null;
+    const key = ruleKey || host;
+    if (!map.has(key)) map.set(key, { domain: key, displayName: key, tabs: [] });
+    map.get(key).tabs.push(tab);
+    const ruleName = ruleKey ? ruleNameFor(host, rules) : null;
+    if (ruleKey && ruleName) map.get(key).displayName = ruleName;
   }
-  const groups = [...map.entries()].map(([domain, groupTabs]) => ({ domain, tabs: groupTabs }));
+  const groups = [...map.values()];
   groups.sort((a, b) => b.tabs.length - a.tabs.length || a.domain.localeCompare(b.domain));
   return groups;
 }
